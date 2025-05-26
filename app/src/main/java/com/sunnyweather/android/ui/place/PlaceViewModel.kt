@@ -16,4 +16,10 @@ class PlaceViewModel:ViewModel() {
     fun searchPlaces(query: String){
         searchLiveData.value = query//一旦调用,转换函数就会执行
     }
+
+    fun savePlace(place: Place) = Repository.savePlace(place)
+
+    fun getSavedPlace() = Repository.getSavedPlace()
+
+    fun isdPlaceSaved() = Repository.isPlaceSaved()
 }
