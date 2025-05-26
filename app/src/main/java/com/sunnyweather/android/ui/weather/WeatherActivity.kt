@@ -1,19 +1,26 @@
 package com.sunnyweather.android.ui.weather
 
+import android.content.Context
 import android.graphics.Color
+import android.inputmethodservice.InputMethodService
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
+import android.view.inputmethod.InputMethodManager
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
+import androidx.core.view.GravityCompat
+import androidx.drawerlayout.widget.DrawerLayout
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelProviders
 import com.sunnyweather.android.R
 import com.sunnyweather.android.logic.model.Weather
 import com.sunnyweather.android.logic.model.getSky
+import kotlinx.android.synthetic.main.activity_weather.drawerLayout
+import kotlinx.android.synthetic.main.activity_weather.swipeRefresh
 import kotlinx.android.synthetic.main.activity_weather.weatherLayout
 import kotlinx.android.synthetic.main.forecast.forecastLayout
 import kotlinx.android.synthetic.main.life_index.carWashingText
@@ -23,10 +30,13 @@ import kotlinx.android.synthetic.main.life_index.ultravioletText
 import kotlinx.android.synthetic.main.now.currentAQI
 import kotlinx.android.synthetic.main.now.currentSky
 import kotlinx.android.synthetic.main.now.currentTemp
+import kotlinx.android.synthetic.main.now.navBtn
 import kotlinx.android.synthetic.main.now.nowLayout
 import kotlinx.android.synthetic.main.now.placeName
 import java.text.SimpleDateFormat
 import java.util.Locale
+import java.util.Objects
+
 //===============================================获取天气数据并显示在界面上==================================
 class WeatherActivity : AppCompatActivity() {
     val viewModel by lazy { ViewModelProviders.of(this).get(WeatherViewModel::class.java) }
@@ -45,6 +55,26 @@ class WeatherActivity : AppCompatActivity() {
         if(viewModel.placeName.isEmpty()){
             viewModel.placeName = intent.getStringExtra("place_name")?:""
         }
+        navBtn.setOnClickListener {
+            drawerLayout.openDrawer(GravityCompat.START)
+        }
+
+        drawerLayout.addDrawerListener(object : DrawerLayout.DrawerListener{
+            override fun onDrawerStateChanged(newState: Int) {}
+
+            override fun onDrawerSlide(drawerView: View, slideOffset: Float) {}
+
+            override fun onDrawerOpened(drawerView: View) {}
+
+            override fun onDrawerClosed(drawerView: View) {
+                val manager = getSystemService(Context.INPUT_METHOD_SERVICE)
+                        as InputMethodManager
+                manager.hideSoftInputFromWindow(drawerView.windowToken,
+                    InputMethodManager.HIDE_NOT_ALWAYS)
+            }
+
+
+        })
         viewModel.weatherLiveData.observe(this, Observer { result->
             val weather = result.getOrNull()
             if(weather!=null){
@@ -53,8 +83,18 @@ class WeatherActivity : AppCompatActivity() {
                 Toast.makeText(this,"无法成功获取天气信息",Toast.LENGTH_SHORT).show()
                 result.exceptionOrNull()?.printStackTrace()
             }
+            swipeRefresh.isRefreshing = false//不显示下拉进度条
         })
-        viewModel.refreshWeather(viewModel.locationLng,viewModel.locationLat)//刷新天气的请求
+        swipeRefresh.setColorSchemeResources(R.color.purple_200)
+        refreshWeather()
+        swipeRefresh.setOnRefreshListener {
+            refreshWeather()
+        }
+//        viewModel.refreshWeather(viewModel.locationLng,viewModel.locationLat)//初始刷新天气的请求
+    }
+    fun refreshWeather(){
+        viewModel.refreshWeather(viewModel.locationLng,viewModel.locationLat)
+        swipeRefresh.isRefreshing = true//显示下拉进度条
     }
 
     private fun  showWeatherInfo(weather: Weather){
